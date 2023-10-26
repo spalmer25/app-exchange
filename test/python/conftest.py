@@ -14,16 +14,8 @@ from .apps.exchange_navigation_helper import ExchangeNavigationHelper
 configuration.OPTIONAL.APP_NAME = "Exchange"
 
 configuration.OPTIONAL.SIDELOADED_APPS = {
-    "bitcoin": "Bitcoin",
-    "bitcoin_legacy": "Bitcoin Legacy",
     "ethereum": "Ethereum",
-    "ethereum_classic": "Ethereum Classic",
     "tezos_new": "Tezos Wallet",
-    "xrp": "XRP",
-    "litecoin": "Litecoin",
-    "stellar": "Stellar",
-    "solana": "Solana",
-    "bsc": "Binance Smart Chain",
 }
 
 configuration.OPTIONAL.SIDELOADED_APPS_DIR = "test/python/lib_binaries/"
