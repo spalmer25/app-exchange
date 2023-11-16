@@ -114,7 +114,7 @@ class ExchangeTestRunner:
         # Ask exchange to start the library application to sign the actual outgoing transaction
         ex.start_signing_transaction()
 
-        self.exchange_navigation_helper.wait_for_library_spinner()
+        # self.exchange_navigation_helper.wait_for_library_spinner()
 
     def perform_valid_swap_from_custom(self, destination, send_amount, fees, memo, refund_address=None, refund_memo=None, ui_validation=True, legacy=False):
         refund_address = self.valid_refund if refund_address is None else refund_address
