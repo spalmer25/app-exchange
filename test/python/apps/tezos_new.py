@@ -196,10 +196,11 @@ class TezosClient:
             if self._backend.firmware.is_nano:
                 navigate_instruction = NavInsID.RIGHT_CLICK
                 validation_instructions = [NavInsID.BOTH_CLICK]
+                text="Accept"
             else:
                 navigate_instruction = NavInsID.USE_CASE_REVIEW_TAP
                 validation_instructions = [NavInsID.USE_CASE_REVIEW_CONFIRM]
-            text="Accept"
+                text="Sign"
             self._exchange_navigation_helper.\
                 _navigator.\
                 navigate_until_text_and_compare(navigate_instruction,
