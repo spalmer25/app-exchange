@@ -3,49 +3,26 @@ name: Reusable swap functional tests
 on:
   workflow_call:
     inputs:
-      branch_for_exchange:
+      repo_for_exchange:
         required: false
-        default: 'develop'
+        default: 'LedgerHQ/app-exchange'
         type: string
-      branch_for_stellar:
+      branch_for_exchange:
         required: false
         default: 'develop'
         type: string
       branch_for_tezos:
         required: false
-        default: 'develop'
-        type: string
-      branch_for_xrp:
-        required: false
-        default: 'develop'
+        default: 'main'
         type: string
       branch_for_ethereum:
         required: false
         default: 'develop'
         type: string
-      branch_for_ethereum_classic:
+      run_for_devices:
+        description: 'The list of device(s) on which the test will run (defaults to ["nanos", "nanox", "nanosp", "stax"])'
         required: false
-        default: 'develop'
-        type: string
-      branch_for_litecoin:
-        required: false
-        default: 'master'
-        type: string
-      branch_for_bitcoin_legacy:
-        required: false
-        default: 'master'
-        type: string
-      branch_for_bitcoin:
-        required: false
-        default: 'develop'
-        type: string
-      branch_for_solana:
-        required: false
-        default: 'develop'
-        type: string
-      branch_for_bsc:
-        required: false
-        default: 'develop'
+        default: '["nanos", "nanox", "nanosp", "stax"]'
         type: string
       test_filter:
         required: false
@@ -59,41 +36,20 @@ jobs:
       fail-fast: false
       matrix:
         coin:
-        - name: stellar
-          repo: app-stellar
-          branch: ${{ inputs.branch_for_stellar }}
-        - name: tezos
-          repo: app-tezos
+        - name: tezos_new
+          repo: trilitech/ledger-app-tezos-wallet
           branch: ${{ inputs.branch_for_tezos }}
-        - name: xrp
-          repo: app-xrp
-          branch: ${{ inputs.branch_for_xrp }}
+          relative_app_directory: 'app'
         - name: ethereum
-          repo: app-ethereum
+          repo: LedgerHQ/app-ethereum
           branch: ${{ inputs.branch_for_ethereum }}
-        - name: ethereum_classic
-          repo: app-ethereum
-          branch: ${{ inputs.branch_for_ethereum_classic }}
-        - name: litecoin
-          repo: app-bitcoin
-          branch: ${{ inputs.branch_for_litecoin }}
-        - name: bitcoin_legacy
-          repo: app-bitcoin
-          branch: ${{ inputs.branch_for_bitcoin_legacy }}
-        - name: bitcoin
-          repo: app-bitcoin-new
-          branch: ${{ inputs.branch_for_bitcoin }}
-        - name: solana
-          repo: app-solana
-          branch: ${{ inputs.branch_for_solana }}
-        - name: bsc
-          repo: app-ethereum
-          branch: ${{ inputs.branch_for_bsc }}
+          relative_app_directory: '.'
 
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_build.yml@v1
     with:
-      app_repository: LedgerHQ/${{ matrix.coin.repo }}
-      app_branch_name: ${{  matrix.coin.branch }}
+      app_repository: ${{ matrix.coin.repo }}
+      app_branch_name: ${{ matrix.coin.branch }}
+      relative_app_directory: ${{ matrix.coin.relative_app_directory }}
       flags: "COIN=${{ matrix.coin.name }} CHAIN=${{ matrix.coin.name }} DEBUG=1"
       upload_app_binaries_artifact: libraries_binaries
       upload_as_lib_artifact: ${{ matrix.coin.name }}
@@ -102,7 +58,7 @@ jobs:
     name: Build application using the reusable workflow
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_build.yml@v1
     with:
-      app_repository: LedgerHQ/app-exchange
+      app_repository: ${{ inputs.repo_for_exchange }}
       app_branch_name: ${{ inputs.branch_for_exchange }}
       flags: "TESTING=1 TEST_PUBLIC_KEY=1 DEBUG=1"
       upload_app_binaries_artifact: exchange_binaries
@@ -114,65 +70,10 @@ jobs:
       - build_sideloaded_applications
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_ragger_tests.yml@v1
     with:
-      app_repository: LedgerHQ/app-exchange
+      app_repository: ${{ inputs.repo_for_exchange }}
       app_branch_name: ${{ inputs.branch_for_exchange }}
       download_app_binaries_artifact: exchange_binaries
       lib_binaries_artifact: libraries_binaries
       test_dir: test/python
+      run_for_devices: ${{ inputs.run_for_devices }}
       test_filter: ${{ inputs.test_filter }}
-
-  # Legacy
-  zemu_tests:
-    name: Zemu tests
-    strategy:
-      matrix:
-        # device: ["Nano S", "Nano X", "Nano SP"]
-        device: ["Nano S"]
-    needs:
-      - build_exchange_application
-      - build_sideloaded_applications
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Clone
-        uses: actions/checkout@v3
-        with:
-          repository: LedgerHQ/app-exchange
-          ref: ${{ inputs.branch_for_exchange }}
-
-      - name: Install APT dependencies
-        run: sudo apt-get update -y && sudo apt-get install -y libusb-1.0.0 libudev-dev
-
-      - name: Install Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16
-
-      - name: Install Yarn
-        run: npm install -g yarn
-
-      - name: Install JS dependencies
-        run: cd test && yarn install
-
-      - name: Download all binaries
-        uses: actions/download-artifact@v3
-
-      - name: Download exchange binaries
-        uses: actions/download-artifact@v3
-        with:
-          name: exchange_binaries
-          path: ./build/
-
-      - name: Download lib binaries
-        uses: actions/download-artifact@v3
-        with:
-          name: libraries_binaries
-          path: ./test/python/lib_binaries/
-
-      - name: Dispatch to the tests/elfs
-        run: |
-          ./copy_elfs_for_zemu.sh
-          tree test/elfs
-
-      - name: Run zemu tests for device ${{ matrix.device }}
-        run: cd test && yarn test -t "\[${{ matrix.device }}\]"
